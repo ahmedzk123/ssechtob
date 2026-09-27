@@ -16,7 +16,7 @@ class MinMax():
         best_score = -float('inf')
         opp_score = float('inf')
         best_move = None
-        
+
         for move in board.legal_moves:
             board.push(move)
             score = self.minmax_depth_k(board, k-1, not my_move, best_score, opp_score)
@@ -39,31 +39,25 @@ class MinMax():
         if my_move:
             if board.is_checkmate(): return -float('inf')
             if k == 0: return self.eval(board, my_move)  
-
+            
             best_score = -float('inf')
-
             for move in board.legal_moves:
                 board.push(move)
                 move_k_score = self.minmax_depth_k(board, k-1, not my_move, alpha, beta)
                 board.pop()
-                
                 if move_k_score > best_score: 
                     best_score = move_k_score
                     alpha = move_k_score
-
                 if move_k_score > beta:
                     return best_score
-                
             return best_score
             
                 
         elif not my_move:
-
             if board.is_checkmate(): return float('inf')
             if k == 0: return self.eval(board, not my_move)
-
+            
             opp_score = float('inf')
-
             for move in board.legal_moves:
                 board.push(move)
                 move_k_score = self.minmax_depth_k(board, k-1, my_move, alpha, beta)
@@ -80,9 +74,19 @@ class MinMax():
 # example: back-rank mate setup, or use a known FEN
 board = chess.Board("6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1")  # rough example, verify the FEN yourself
 
-def function(x, my_move):
-    return 0
+def function(board_state, my_move):
+    values = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3,
+              chess.ROOK: 5, chess.QUEEN: 9}
+    
+    score = 0
+    
+    for piece_type, value in values.items():
+        score += len(board_state.pieces(piece_type, my_move)) * value
+        score -= len(board_state.pieces(piece_type, not my_move)) * value
+
+    return score
+
 
 minmax = MinMax(function)
-move = minmax.find_best_move(board, k=1, my_move=True)
+move = minmax.find_best_move(board, k=1, my_move=chess.WHITE)
 print(move)  # should be the mating rook move
