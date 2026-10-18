@@ -34,7 +34,8 @@ def encode(board, dtype=np.float32):
 
 class NumpyNet():
     def __init__(self, model_path):
-        sd = torch.load(model_path)
+        #sd = torch.load(model_path)
+        sd = torch.load(model_path, map_location="cpu")
         self.layers = [(sd[f"W{i}.weight"].numpy(), sd[f"W{i}.bias"].numpy()) for i in range(5)]
         self.a = sd["a"].item()
         self.piece_values = sd["piece_values"].numpy()
