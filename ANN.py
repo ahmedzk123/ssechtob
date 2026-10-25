@@ -20,8 +20,6 @@ class ANN(nn.Module):
         return y_hat
 
 
-# v2: side to move input (768 pieces + 4 castling), nn learns a correction on top of exact material
-# piece slots per square: 0-5 = my P N B R Q K, 6-11 = opp P N B R Q K
 
 class ANN2(nn.Module):
     def __init__(self):
@@ -32,7 +30,6 @@ class ANN2(nn.Module):
         self.W3 = nn.Linear(128, 64)
         self.W4 = nn.Linear(64, 1)
 
-        # start as pure material: tanh(material / 4)
         nn.init.zeros_(self.W4.weight)
         nn.init.zeros_(self.W4.bias)
         self.a = nn.Parameter(torch.tensor(1.0))

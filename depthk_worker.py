@@ -101,7 +101,7 @@ def to_label(score, is_material):
 
 def label_fen(args):
     fen, d, max_captures, model_path = args
-    board = chess.Board(fen)
+    board = chess.Board(fen)    
     engine = MinMax(with_quiescence(get_eval(model_path), max_captures), board.turn)
     score = engine.minmax_depth_k(board, d, True, -float('inf'), float('inf'))
     return to_label(score, model_path is None)

@@ -26,7 +26,6 @@ class MinMax():
 
 
     def find_best_move(self, board, k, max_node):
-        
         alpha = -float('inf')
         beta = float('inf')
         best_move = None
@@ -96,88 +95,101 @@ def function(board_state, color):
         score -= len(board_state.pieces(piece_type, not color)) * value
     return score
 
-"""
-board = chess.Board("6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1")  # rough example, verify the FEN yourself
-board_2 = chess.Board("4k3/8/8/3q4/8/8/8/3RK3 w - - 0 1")
-board_3 = board_2.mirror()
-board_4 = chess.Board("7k/8/8/8/8/8/R7/1R4K1 w - - 0 1")
-board_5 = chess.Board("7k/8/6K1/8/8/8/8/5Q2 w - - 0 1")
-board_6 = chess.Board("8/P7/8/8/8/8/k7/4K3 w - - 0 1")
 
-# board, depth (k) , expeected move
+class Quiescence():
+    def __init__(self, eval_fn, color, max_captures=4):
+        self.eval_fn = eval_fn
+        self.max_captures = max_captures
+        self.color = color
 
-tests = [
-    (board,   1, "a1a8"),
-    (board_2, 2, "d1d5"),
-    (board_3, 2, "d8d4"),
-    (board_4, 3, "a2a7"),   # b1b7 is also a valid mate in 2
-    (board_5, 2, "f1f8"),
-    (board_6, 2, "a7a8q"),
-]
+    def ordered_moves(self, board):
+            return sorted(board.legal_moves, key=board.is_capture, reverse=True)
 
-for i, (b, k, expected) in enumerate(tests):
-    engine = MinMax(function, b.turn)   # color = side to move
-    move = engine.find_best_move(b, k, max_node=True)
-    print(i, move.uci(), "OK" if move.uci() == expected else f"FAIL (expected {expected})")
-"""
+    def quiescence(self, board, max_node, alpha, beta, tree_depth, capture_depth):
 
-import time, random
+        if max_node:
+            if board.is_checkmate(): return -float('inf')
+            if board.is_game_over(): return 0
 
-def plain_minimax(board, k, max_node, eval_fn, color):
-    if board.is_checkmate(): return -float('inf') if max_node else float('inf')
-    if board.is_game_over(): return 0
-    if k == 0: return eval_fn(board, color)
-    scores = []
-    for move in list(board.legal_moves):
-        board.push(move)
-        scores.append(plain_minimax(board, k-1, not max_node, eval_fn, color))
-        board.pop()
-    return max(scores) if max_node else min(scores)
+            if tree_depth > 0: 
+                for move in self.ordered_moves(board):
+                    board.push(move)
+                    score = self.quiescence(board, not max_node, alpha, beta, tree_depth - 1, capture_depth)
+                    board.pop()
+                    if score > alpha:
+                        alpha = score
+                    if alpha >= beta:
+                        return alpha
 
-def plain_root(board, k, eval_fn, color):
-    """Returns (best_score, {move: score}) using no pruning."""
-    scores = {}
-    for move in list(board.legal_moves):
-        board.push(move)
-        scores[move] = plain_minimax(board, k-1, False, eval_fn, color)
-        board.pop()
-    return max(scores.values()), scores
+            # quesisicne shines
+            if (tree_depth == 0 and capture_depth < self.max_captures) or (tree_depth == 0 and board.is_check()):
+                if board.is_check():
+                    for move in self.ordered_moves(board):
+                        board.push(move)
+                        score = self.quiescence(board, not max_node, alpha, beta, 0, capture_depth + 1)
+                        board.pop()
+                        if score > alpha:
+                            alpha = score
+                        if alpha >= beta:
+                            return alpha
+                else:
+                    board_state_score = self.eval_fn(board, self.color)
+                    if board_state_score > alpha:
+                        alpha = board_state_score
+                    alpha = max(alpha, board_state_score)
+                    for move in self.ordered_moves(board):
+                        if not board.is_capture(move) and not move.promotion: continue
+                        board.push(move)
+                        score = self.quiescence(board, not max_node, alpha, beta, 0, capture_depth + 1)
+                        board.pop()
+                        if score > alpha:
+                            alpha = score
+                        if alpha >= beta:
+                            return alpha
+                return alpha
+            return alpha
+        
+                    
 
-def random_position(max_plies=40):
-    b = chess.Board()
-    for _ in range(random.randint(4, max_plies)):
-        if b.is_game_over(): break
-        b.push(random.choice(list(b.legal_moves)))
-    return b
+        else: # not max node ~ min node
+            if board.is_checkmate(): return float('inf')
+            if board.is_game_over(): return 0
 
-def compare(n=30, k=3, seed=1):
-    random.seed(seed)
-    t_plain = t_pruned = 0
-    mismatches = tested = 0
-    for _ in range(n):
-        b = random_position()
-        if b.is_game_over(): continue
-        tested += 1
-        engine = MinMax(function, b.turn)
+            if tree_depth > 0: 
+                for move in self.ordered_moves(board):
+                    board.push(move)
+                    score = self.quiescence(board, not max_node, alpha, beta, tree_depth - 1, capture_depth)
+                    board.pop()
+                    if score < beta:
+                        beta = score
+                    if beta <= alpha:
+                        return beta
 
-        t0 = time.time()
-        best_score, scores = plain_root(b, k, function, b.turn)
-        t_plain += time.time() - t0
-
-        t0 = time.time()
-        move = engine.find_best_move(b, k, max_node=True)
-        t_pruned += time.time() - t0
-
-        # the pruned engine's move must have the same score as plain minimax's best
-        if scores[move] != best_score:
-            mismatches += 1
-            print("MISMATCH:", b.fen(), move, scores[move], "vs best", best_score)
-
-    print(f"positions: {tested}, mismatches: {mismatches}")
-    print(f"plain:  {t_plain:.2f}s")
-    print(f"pruned: {t_pruned:.2f}s  ({t_plain / t_pruned:.1f}x faster)")
-
-# compare(n=30, k=3)
-
-
+            if (tree_depth == 0 and capture_depth < self.max_captures) or (tree_depth == 0 and board.is_check()):
+                if board.is_check():
+                    for move in self.ordered_moves(board):
+                        board.push(move)
+                        score = self.quiescence(board, not max_node, alpha, beta, 0, capture_depth + 1)
+                        board.pop()
+                        if score < beta:
+                            beta = score
+                        if beta <= alpha:
+                                return beta
+                else:
+                    board_state_score = self.eval_fn(board, self.color)
+                    beta = min(beta, board_state_score)
+                    for move in self.ordered_moves(board):
+                        if not board.is_capture(move) and not move.promotion: continue
+                        board.push(move)
+                        score = self.quiescence(board, not max_node, alpha, beta, 0, capture_depth + 1)
+                        board.pop()
+                        if score < beta:
+                            beta = score
+                        if beta <= alpha:
+                            return beta
+                return beta
+            return beta
+            
+        
+        
 

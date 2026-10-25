@@ -5,7 +5,7 @@ from base import MinMax as minmax, function as heuristic
 from depthk_worker import get_eval
 
 # v2 depthk nn (flipped 772 input ANN2), runs in numpy
-deep_network = get_eval("chess_depthk2_r3.pt")
+deep_network = get_eval("model-weights/chess_depthk2_r3.pt")
 
 
 # game below
@@ -27,7 +27,7 @@ def print_board(board, perspective=chess.WHITE):
     print("  " + files)
     print()
 
-"""
+
 
 board = chess.Board()  # rough example, verify the FEN yourself
 
@@ -81,8 +81,9 @@ tests = {
 }
 for name, fen in tests.items():
     print(f"{name:20s}", deep_network(chess.Board(fen), chess.WHITE))
-"""
 
+
+"""
 # material bot vs depthk nn bot, 5 games, swap colours, few random opening moves so games differ
 
 import random
@@ -110,3 +111,4 @@ for g in range(num_games):
     print(f"game {g+1}: nn {'white' if nn_color == chess.WHITE else 'black'} -> {board.result()} ({winner})")
 
 print(score)
+"""
