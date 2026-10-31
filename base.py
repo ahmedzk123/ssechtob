@@ -105,6 +105,25 @@ class Quiescence():
     def ordered_moves(self, board):
             return sorted(board.legal_moves, key=board.is_capture, reverse=True)
 
+    def find_best_move(self, board, k, max_node):
+        alpha = -float('inf')
+        beta = float('inf')
+        best_move = None
+
+        for move in self.ordered_moves(board):
+            board.push(move)
+            score = self.quiescence(board, not max_node, alpha, beta, k-1, 0)
+            board.pop()
+
+            if score > alpha:
+                alpha = score
+                best_move = move
+
+            elif best_move == None:
+                best_move = move
+
+        return best_move
+
     def quiescence(self, board, max_node, alpha, beta, tree_depth, capture_depth):
 
         if max_node:
@@ -122,7 +141,7 @@ class Quiescence():
                         return alpha
 
             # quesisicne shines
-            if (tree_depth == 0 and capture_depth < self.max_captures) or (tree_depth == 0 and board.is_check()):
+            if tree_depth == 0:
                 if board.is_check():
                     for move in self.ordered_moves(board):
                         board.push(move)
@@ -133,19 +152,20 @@ class Quiescence():
                         if alpha >= beta:
                             return alpha
                 else:
+                    # stand pat, at max_captures we just eval (no more captures)
                     board_state_score = self.eval_fn(board, self.color)
                     if board_state_score > alpha:
                         alpha = board_state_score
-                    alpha = max(alpha, board_state_score)
-                    for move in self.ordered_moves(board):
-                        if not board.is_capture(move) and not move.promotion: continue
-                        board.push(move)
-                        score = self.quiescence(board, not max_node, alpha, beta, 0, capture_depth + 1)
-                        board.pop()
-                        if score > alpha:
-                            alpha = score
-                        if alpha >= beta:
-                            return alpha
+                    if capture_depth < self.max_captures:
+                        for move in self.ordered_moves(board):
+                            if not board.is_capture(move) and not move.promotion: continue
+                            board.push(move)
+                            score = self.quiescence(board, not max_node, alpha, beta, 0, capture_depth + 1)
+                            board.pop()
+                            if score > alpha:
+                                alpha = score
+                            if alpha >= beta:
+                                return alpha
                 return alpha
             return alpha
         
@@ -165,7 +185,7 @@ class Quiescence():
                     if beta <= alpha:
                         return beta
 
-            if (tree_depth == 0 and capture_depth < self.max_captures) or (tree_depth == 0 and board.is_check()):
+            if tree_depth == 0:
                 if board.is_check():
                     for move in self.ordered_moves(board):
                         board.push(move)
@@ -178,15 +198,16 @@ class Quiescence():
                 else:
                     board_state_score = self.eval_fn(board, self.color)
                     beta = min(beta, board_state_score)
-                    for move in self.ordered_moves(board):
-                        if not board.is_capture(move) and not move.promotion: continue
-                        board.push(move)
-                        score = self.quiescence(board, not max_node, alpha, beta, 0, capture_depth + 1)
-                        board.pop()
-                        if score < beta:
-                            beta = score
-                        if beta <= alpha:
-                            return beta
+                    if capture_depth < self.max_captures:
+                        for move in self.ordered_moves(board):
+                            if not board.is_capture(move) and not move.promotion: continue
+                            board.push(move)
+                            score = self.quiescence(board, not max_node, alpha, beta, 0, capture_depth + 1)
+                            board.pop()
+                            if score < beta:
+                                beta = score
+                            if beta <= alpha:
+                                return beta
                 return beta
             return beta
             
