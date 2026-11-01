@@ -34,7 +34,6 @@ def encode(board, dtype=torch.float32):
 
 
 # models/engine stuff
-
 _models = {}
 def get_eval(model_path):
     if model_path is None: return function
@@ -68,7 +67,6 @@ def search_score(fen, depth, max_captures, model_path, search_method=Quiescence)
 
 
 # labelleing
-
 def to_label(score, is_material):
     # side to move pov, in [-1, 1]
     if math.isinf(score): return 1.0 if score > 0 else -1.0

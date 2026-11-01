@@ -5,7 +5,7 @@ from base import MinMax as minmax, function as heuristic
 from depthk_worker import get_eval
 
 # v2 depthk nn (flipped 772 input ANN2)
-deep_network = get_eval("experiment-1/model-weights/chess_depthk2_r3.pt")
+deep_network = get_eval("experiment-2/model-weights/chess_depthk2_r3.pt")
 
 
 # game below
